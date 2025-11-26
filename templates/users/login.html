@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3>Login to CampusNexus</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="student">Student</option>
+                            <option value="admin">Admin</option>
+                            <option value="organizer">Organizer</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p><a href="{% url 'users:password_reset' %}" style="color: var(--orange);">Forgot Password?</a></p>
+                    <p>Don't have an account? <a href="{% url 'users:signup' %}" style="color: var(--orange);">Sign up</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

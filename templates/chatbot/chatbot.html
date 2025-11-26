@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}Chatbot - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>🤖 CampusNexus Chatbot</h3>
+            </div>
+            <div class="card-body">
+                <div id="chat-messages" style="height: 400px; overflow-y: auto; border: 1px solid var(--light-blue-grey); padding: 15px; border-radius: 10px; margin-bottom: 20px; background: var(--medium-blue-grey);">
+                    <style>
+                        .message {
+                            color: #fff !important;
+                            font-weight: 500;
+                        }
+                        .message strong {
+                            color: #fff !important;
+                            font-weight: bold;
+                        }
+                        .message ul, .message li {
+                            color: #fff !important;
+                            font-weight: 500;
+                        }
+                        .text-muted {
+                            color: #fff !important;
+                            font-weight: bold !important;
+                        }
+                        #chat-messages {
+                            background: var(--medium-blue-grey) !important;
+                        }
+                        #chat-messages .message {
+                            color: var(--white) !important;
+                            font-weight: 500;
+                        }
+                        #chat-messages .message strong {
+                            color: var(--white) !important;
+                            font-weight: 600;
+                        }
+                        #chat-messages .message ul, #chat-messages .message li {
+                            color: var(--white) !important;
+                            font-weight: 500;
+                        }
+                    </style>
+                    <div class="message bot-message mb-3">
+                        <strong>Bot:</strong> Hello! I'm your CampusNexus assistant. I can help you with:
+                        <ul>
+                            <li><strong>Event Search:</strong> "Show me tech events tomorrow", "Find free events", "Events in [location]"</li>
+                            <li><strong>My Events:</strong> "What events am I registered for?", "My upcoming events"</li>
+                            <li><strong>Feedback:</strong> "What events need feedback?"</li>
+                            <li><strong>Leaderboard:</strong> "What's my rank?", "How many points do I have?"</li>
+                        </ul>
+                        Type "help" for more options!
+                    </div>
+                </div>
+                <form id="chat-form">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="query-input" placeholder="Type your question...">
+                        <button class="btn btn-primary" type="submit">Send</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const chatForm = document.getElementById('chat-form');
+const sendButton = chatForm.querySelector('button[type="submit"]');
+
+chatForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('query-input');
+    const query = input.value.trim();
+    if (!query) return;
+    
+    const messagesDiv = document.getElementById('chat-messages');
+    
+    // Add user message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'message user-message mb-3 text-end';
+    userMsg.style.color = 'var(--white)';
+    userMsg.style.fontWeight = '500';
+    userMsg.innerHTML = `<strong style="color: var(--white); font-weight: 600;">You:</strong> <span style="color: var(--white); font-weight: 500;">${query}</span>`;
+    messagesDiv.appendChild(userMsg);
+    
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    // Show typing indicator
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'message bot-message mb-3 text-muted';
+    typingMsg.textContent = 'Bot is thinking...';
+    messagesDiv.appendChild(typingMsg);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    // Disable button while request is active
+    const originalBtnText = sendButton.innerHTML;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Sending';
+
+    // Send to API
+    try {
+        const response = await fetch('{% url "chatbot:chatbot_query" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ query: query })
+        });
+        
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            throw new Error(data.error || 'Unable to process your query right now.');
+        }
+
+        typingMsg.remove();
+        
+        // Add bot response
+        const botMsg = document.createElement('div');
+        botMsg.className = 'message bot-message mb-3';
+        botMsg.style.color = 'var(--white)';
+        botMsg.style.fontWeight = '500';
+        botMsg.innerHTML = `<strong style="color: var(--white); font-weight: 600;">Bot:</strong> <span style="color: var(--white); font-weight: 500;">${data.response}</span>`;
+        messagesDiv.appendChild(botMsg);
+        
+        // If there's event data, display it nicely
+        if (data.data && data.data.length > 0) {
+            const dataContainer = document.createElement('div');
+            dataContainer.className = 'mt-3';
+            
+            if (data.type === 'events' || data.type === 'registrations') {
+                // Create cards for events
+                data.data.forEach(event => {
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'card mb-2';
+                    eventCard.style.background = 'var(--medium-blue-grey)';
+                    eventCard.style.border = '1px solid var(--light-blue-grey)';
+                    
+                    let cardContent = `<div class="card-body p-2" style="color: var(--white);">`;
+                    cardContent += `<h6 class="card-title mb-1" style="color: var(--white); font-weight: 600;"><a href="/events/${event.id}/" style="color: var(--orange); font-weight: 600;">${event.title}</a></h6>`;
+                    
+                    if (event.date) cardContent += `<small style="color: var(--white); font-weight: 400;">📅 ${event.date}</small><br>`;
+                    if (event.location) cardContent += `<small style="color: var(--white); font-weight: 400;">📍 ${event.location}</small><br>`;
+                    if (event.category) cardContent += `<small style="color: var(--white); font-weight: 400;">🏷️ ${event.category}</small> `;
+                    if (event.department) cardContent += `<small style="color: var(--white); font-weight: 400;">| ${event.department}</small><br>`;
+                    if (event.fee !== undefined) {
+                        if (event.fee === 0) {
+                            cardContent += `<small class="text-success" style="font-weight: 500;">💰 Free</small> `;
+                        } else {
+                            cardContent += `<small style="color: var(--white); font-weight: 400;">💰 ₹${event.fee}</small> `;
+                        }
+                    }
+                    if (event.registrations !== undefined) {
+                        cardContent += `<small style="color: var(--white); font-weight: 400;">| 👥 ${event.registrations}/${event.capacity || 'N/A'}</small>`;
+                    }
+                    if (event.rating !== undefined && event.rating > 0) {
+                        cardContent += `<br><small style="color: var(--white); font-weight: 400;">⭐ ${event.rating.toFixed(1)}/5.0</small>`;
+                    }
+                    
+                    cardContent += `</div>`;
+                    eventCard.innerHTML = cardContent;
+                    dataContainer.appendChild(eventCard);
+                });
+            } else {
+                // Simple list for other data types
+                const dataList = document.createElement('ul');
+                dataList.style.color = 'var(--white)';
+                dataList.style.fontWeight = '500';
+                data.data.forEach(item => {
+                    const li = document.createElement('li');
+                    li.style.color = 'var(--white)';
+                    li.style.fontWeight = '500';
+                    if (item.id) {
+                        li.innerHTML = `<a href="/events/${item.id}/" style="color: var(--orange); font-weight: 600;">${item.title || item.name}</a>${item.date ? ' <span style="color: var(--white); font-weight: 400;">- ' + item.date + '</span>' : ''}`;
+                    } else {
+                        li.textContent = item.title || item.name || JSON.stringify(item);
+                    }
+                    dataList.appendChild(li);
+                });
+                dataContainer.appendChild(dataList);
+            }
+            
+            botMsg.appendChild(dataContainer);
+        }
+        
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (error) {
+        typingMsg.remove();
+        console.error('Error:', error);
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'message bot-message mb-3 text-danger';
+        errorMsg.style.color = 'var(--white)';
+        errorMsg.style.fontWeight = '500';
+        errorMsg.innerHTML = `<strong style="color: var(--white); font-weight: 600;">Bot:</strong> <span style="color: #dc3545; font-weight: 500;">${error.message}</span>`;
+        messagesDiv.appendChild(errorMsg);
+    }
+    
+    sendButton.disabled = false;
+    sendButton.innerHTML = originalBtnText;
+});
+</script>
+{% endblock %}
+

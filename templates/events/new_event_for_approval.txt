@@ -1,0 +1,13 @@
+Hello Admin,
+
+A new event has been created and is awaiting your approval:
+
+Title: {{ event.title }}
+Creator: {{ creator.username }} ({{ creator.email }})
+Date: {{ event.event_date }}
+Department: {{ event.department }}
+
+Please review and approve or reject the event in the CampusNexus admin panel.
+
+Thanks,
+CampusNexus Team

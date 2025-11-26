@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            {% if event.banner %}
+            <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}" style="max-height: 400px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h1>{{ event.title }}</h1>
+                {% if event.status == 'pending' %}
+                <div class="alert alert-warning">
+                    <strong>⚠️ This event is pending approval.</strong> It will be visible to students once approved by an admin.
+                </div>
+                {% elif event.status == 'draft' %}
+                <div class="alert alert-info">
+                    <strong>📝 This event is in draft mode.</strong>
+                </div>
+                {% endif %}
+                <p style="color: #000; font-weight: bold;">
+                    <strong>Category:</strong> {{ event.get_category_display }} | 
+                    <strong>Department:</strong> {{ event.department }} |
+                    <strong>Status:</strong> {{ event.get_status_display }} |
+                    {% if event.hotness_score >= 50 %}
+                    <span class="hot-badge">🔥 Hot Event</span>
+                    {% endif %}
+                </p>
+                <hr>
+                <h4>Description</h4>
+                <p>{{ event.description|linebreaks }}</p>
+                <hr>
+                <h4>Event Details</h4>
+                <ul>
+                    <li><strong>Date & Time:</strong> {{ event.event_date|date:"F d, Y H:i" }}</li>
+                    <li><strong>Location:</strong> {{ event.location }}</li>
+                    <li><strong>Capacity:</strong> {{ event.capacity }} participants</li>
+                    <li><strong>Available Spots:</strong> {{ available_spots }}</li>
+                    <li><strong>Registration Fee:</strong> ₹{{ event.fee }}</li>
+                    <li><strong>Team Event:</strong> {% if event.is_team_event %}Yes (Team Size: {{ event.team_size }}){% else %}No{% endif %}</li>
+                </ul>
+                <hr>
+                <h4>Rules & Guidelines</h4>
+                <p>{{ event.rules|linebreaks }}</p>
+                <hr>
+                <h4>Average Rating</h4>
+                <div class="star-rating">
+                    {% for i in "12345"|make_list %}
+                        {% if forloop.counter <= event.average_rating|floatformat:0|add:"0" %}
+                            ★
+                        {% else %}
+                            ☆
+                        {% endif %}
+                    {% endfor %}
+                    <span class="ms-2">({{ event.average_rating|floatformat:1 }}/5.0)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        {% if user.is_authenticated %}
+            {% if user.is_student %}
+                {% if is_registered %}
+                <div class="card">
+                    <div class="card-header">Registration Status</div>
+                    <div class="card-body">
+                        <p>✅ You are registered for this event!</p>
+                        {% if not registration.is_verified %}
+                        <p class="text-warning">⏳ Payment verification pending</p>
+                        {% else %}
+                        <p class="text-success">✅ Payment verified</p>
+                        {% endif %}
+                        {% if event.event_date <= now %}
+                        <a href="{% url 'feedback:feedback_create' event.id %}" class="btn btn-primary w-100">Submit Feedback</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="card">
+                    <div class="card-header">Register for Event</div>
+                    <div class="card-body">
+                        {% if event.status != 'approved' %}
+                        <p class="text-warning" style="color: #000; font-weight: bold;">⚠️ This event is not yet approved. Registration will open after approval.</p>
+                        {% elif event.is_registration_open %}
+                        <div id="register-button-section">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Registration Fee: ₹{{ event.fee }}</strong></label>
+                            </div>
+                            <button type="button" class="btn btn-primary w-100" id="register-now-btn" onclick="showRegistrationForm()">Register Now</button>
+                        </div>
+                        
+                        <div id="registration-form-section" style="display: none;">
+                            <form method="post" enctype="multipart/form-data" id="registration-form">
+                                {% csrf_token %}
+                                
+                                {% if event.is_team_event %}
+                                <div class="mb-3">
+                                    <label for="team_name" class="form-label"><strong>Team Name *</strong></label>
+                                    <input type="text" class="form-control" id="team_name" name="team_name" placeholder="Enter your team name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="team_members" class="form-label"><strong>Select Team Members ({{ event.team_size }} members including you) *</strong></label>
+                                    {% if team_members %}
+                                    <select class="form-select" id="team_members" name="team_members" multiple size="5" required>
+                                        {% for member in team_members %}
+                                        <option value="{{ member.id }}">{{ member.username }} ({{ member.email }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted" style="color: #000; font-weight: bold;">Hold Ctrl/Cmd to select multiple members. You need to select {{ event.team_size|add:"-1" }} other member(s).</small>
+                                    {% else %}
+                                    <div class="alert alert-warning">
+                                        <strong>No other students available.</strong> Please contact the administrator.
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Registration Fee: ₹{{ event.fee }}</strong></label>
+                                </div>
+                                
+                                {% if event.get_qr_code_image %}
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Payment QR Code</strong></label>
+                                    <div class="text-center">
+                                        <img src="{{ event.get_qr_code_image.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 250px;">
+                                    </div>
+                                    <small class="form-text text-muted" style="color: #000; font-weight: bold;">Scan this QR code to make payment</small>
+                                </div>
+                                
+                                <div class="mb-3 card p-3" style="background-color: rgba(255, 255, 255, 0.95);">
+                                    <label class="form-label"><strong>Payment Details</strong></label>
+                                    <div class="mb-3">
+                                        <label for="payment_verification_code" class="form-label"><strong>UPI Transaction ID *</strong></label>
+                                        <input type="text" class="form-control" id="payment_verification_code" name="payment_verification_code" placeholder="e.g., 1234567890123456" required>
+                                        <small class="form-text" style="color: #000; font-weight: bold;">Enter the UPI transaction ID from your payment receipt</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="upi_id" class="form-label"><strong>UPI ID Used for Transaction *</strong></label>
+                                        <input type="text" class="form-control" id="upi_id" name="upi_id" placeholder="e.g., yourname@paytm or yourname@upi" required>
+                                        <small class="form-text" style="color: #000; font-weight: bold;">Enter the UPI ID you used to make the payment</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="mb-3">
+                                    <label for="payment_verification_code" class="form-label"><strong>Payment Verification Code/Transaction ID</strong></label>
+                                    <input type="text" class="form-control" id="payment_verification_code" name="payment_verification_code" required>
+                                    <small class="form-text text-muted" style="color: #000; font-weight: bold;">Enter the transaction ID or verification code from your payment</small>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="mb-3">
+                                    <label for="payment_screenshot" class="form-label"><strong>Payment Screenshot (Optional)</strong></label>
+                                    <input type="file" class="form-control" id="payment_screenshot" name="payment_screenshot" accept="image/*">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-success w-100">Submit Registration</button>
+                                <button type="button" class="btn btn-secondary w-100 mt-2" onclick="hideRegistrationForm()">Cancel</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <p class="text-danger" style="color: #000; font-weight: bold;">Registration is closed</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <script>
+                function showRegistrationForm() {
+                    document.getElementById('register-button-section').style.display = 'none';
+                    document.getElementById('registration-form-section').style.display = 'block';
+                    // Scroll to form
+                    document.getElementById('registration-form-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                
+                function hideRegistrationForm() {
+                    document.getElementById('registration-form-section').style.display = 'none';
+                    document.getElementById('register-button-section').style.display = 'block';
+                }
+                </script>
+            {% else %}
+                {% if user.is_admin %}
+                <div class="card">
+                    <div class="card-header">Admin Actions</div>
+                    <div class="card-body">
+                        {% if event.status == 'pending' %}
+                        <form method="post" action="{% url 'events:event_approve' event.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary w-100">Approve Event</button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'events:event_edit' event.id %}" class="btn btn-secondary w-100 mt-2">Edit Event</a>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+        
+        <div class="card mt-3">
+            <div class="card-header">Event Statistics</div>
+            <div class="card-body">
+                <p><strong>Total Registrations:</strong> {{ event.total_registrations }}</p>
+                <p><strong>Hotness Score:</strong> {{ event.hotness_score|floatformat:1 }}</p>
+                <p><strong>Average Rating:</strong> {{ event.average_rating|floatformat:1 }}/5.0</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

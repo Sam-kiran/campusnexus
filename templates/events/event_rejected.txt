@@ -1,0 +1,12 @@
+Hi {{ event.created_by.username }},
+
+We’re sorry to inform you that your event "{{ event.title }}" was not approved by {{ admin.username }}.
+
+Reason provided:
+
+{{ reason }}
+
+If you have questions or want to resubmit with changes, please edit your event and submit again.
+
+Best regards,
+CampusNexus Team

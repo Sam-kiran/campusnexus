@@ -1,0 +1,13 @@
+Hi {{ event.created_by.username }},
+
+Good news — your event "{{ event.title }}" has been approved by {{ admin.username }}.
+
+It is now visible to students and they can register for it.
+
+Event details:
+Title: {{ event.title }}
+Date: {{ event.event_date }}
+Location: {{ event.location }}
+
+Best regards,
+CampusNexus Team

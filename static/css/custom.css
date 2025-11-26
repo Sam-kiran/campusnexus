@@ -1,0 +1,47 @@
+/* Additional custom styles */
+.event-card {
+    transition: all 0.3s ease;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(249, 177, 122, 0.4);
+}
+
+.star-rating input[type="radio"] {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 2rem;
+    color: #676F9D;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-rating input[type="radio"]:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #f9b17a;
+}
+
+/* FullCalendar customization */
+.fc {
+    background: rgba(32, 50, 80, 0.8);
+    color: #ffffff;
+}
+
+.fc-toolbar-title {
+    color: #ffffff !important;
+}
+
+.fc-button-primary {
+    background: #f9b17a !important;
+    border: none !important;
+}
+
+.fc-event {
+    background: #f9b17a !important;
+    border-color: #676F9D !important;
+}
+

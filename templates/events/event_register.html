@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Register for {{ event.title }}</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5>Event Rules:</h5>
+                    <p>{{ event.rules|linebreaks }}</p>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if event.is_team_event %}
+                    <div class="mb-3">
+                        <label for="team_name" class="form-label"><strong>Team Name *</strong></label>
+                        <input type="text" class="form-control" id="team_name" name="team_name" placeholder="Enter your team name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="team_members" class="form-label"><strong>Select Team Members ({{ event.team_size }} members including you) *</strong></label>
+                        {% if team_members %}
+                        <select class="form-select" id="team_members" name="team_members" multiple size="5" required>
+                            {% for member in team_members %}
+                            <option value="{{ member.id }}">{{ member.username }} ({{ member.email }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted" style="color: #000; font-weight: bold;">Hold Ctrl/Cmd to select multiple members. You need to select {{ event.team_size|add:"-1" }} other member(s).</small>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <strong>No other students available.</strong> Please contact the administrator.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Registration Fee: ₹{{ event.fee }}</label>
+                    </div>
+                    
+                    {% if event.qr_code %}
+                    <div class="mb-3">
+                        <label class="form-label">Payment QR Code</label>
+                        <div class="text-center">
+                            <img src="{{ event.qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 300px;">
+                        </div>
+                        <small class="form-text text-muted">Scan this QR code to make payment</small>
+                    </div>
+                    
+                    <div class="mb-3 card p-3" style="background-color: rgba(255, 255, 255, 0.95);">
+                        <label class="form-label"><strong>Payment Details</strong></label>
+                        <div class="mb-3">
+                            <label for="payment_verification_code" class="form-label">UPI Transaction ID *</label>
+                            <input type="text" class="form-control" id="payment_verification_code" name="payment_verification_code" placeholder="e.g., 1234567890123456" required>
+                            <small class="form-text">Enter the UPI transaction ID from your payment receipt</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="upi_id" class="form-label">UPI ID Used for Transaction *</label>
+                            <input type="text" class="form-control" id="upi_id" name="upi_id" placeholder="e.g., yourname@paytm or yourname@upi" required>
+                            <small class="form-text">Enter the UPI ID you used to make the payment</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label for="payment_verification_code" class="form-label">Payment Verification Code/Transaction ID</label>
+                        <input type="text" class="form-control" id="payment_verification_code" name="payment_verification_code" required>
+                        <small class="form-text text-muted">Enter the transaction ID or verification code from your payment</small>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="payment_screenshot" class="form-label">Payment Screenshot (Optional)</label>
+                        <input type="file" class="form-control" id="payment_screenshot" name="payment_screenshot" accept="image/*">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Submit Registration</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

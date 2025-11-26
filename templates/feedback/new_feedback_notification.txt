@@ -1,0 +1,12 @@
+Hello,
+
+A new feedback has been submitted for your event "{{ event.title }}".
+
+Rating: {{ feedback.rating }}
+Comment: {{ feedback.comment }}
+By: {% if feedback.is_anonymous %}Anonymous{% else %}{{ feedback.user.username }} ({{ feedback.user.email }}){% endif %}
+
+Visit the feedback page to review more details.
+
+Thanks,
+CampusNexus Team

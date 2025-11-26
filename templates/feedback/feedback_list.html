@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Feedback - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Feedback for {{ event.title }}</h3>
+                <p>Average Rating: {{ average_rating|floatformat:1 }}/5.0</p>
+            </div>
+            <div class="card-body">
+                {% for feedback in feedbacks %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <div class="star-rating">
+                                    {% for i in "12345"|make_list %}
+                                        {% if forloop.counter <= feedback.rating %}
+                                            ★
+                                        {% else %}
+                                            ☆
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <p class="mt-2">{{ feedback.emotion }} {{ feedback.comment|linebreaks }}</p>
+                                {% if not feedback.is_anonymous %}
+                                <small style="color: #000; font-weight: bold;">By: {{ feedback.user.username }}</small>
+                                {% else %}
+                                <small style="color: #000; font-weight: bold;">Anonymous</small>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <small style="color: #000; font-weight: bold;">{{ feedback.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p>No feedback yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Welcome, {{ user.username }}!</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ leaderboard.total_events_attended }}</h3>
+                <p>Events Attended</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ leaderboard.total_points }}</h3>
+                <p>Total Points</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>#{{ rank }}</h3>
+                <p>Leaderboard Rank</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ leaderboard.total_feedback_given }}</h3>
+                <p>Feedbacks Given</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if hot_events %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>🔥 Hot Events</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for event in hot_events %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card event-card" onclick="window.location='{% url 'events:event_detail' event.id %}'">
+                            <div class="card-body">
+                                <h6>{{ event.title }}</h6>
+                                <small style="color: #000; font-weight: bold;">{{ event.event_date|date:"M d" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Upcoming Events</div>
+            <div class="card-body">
+                {% if upcoming_registrations %}
+                <ul class="list-group">
+                    {% for reg in upcoming_registrations %}
+                    <li class="list-group-item">
+                        <a href="{% url 'events:event_detail' reg.event.id %}">{{ reg.event.title }}</a>
+                        <br><small style="color: #000; font-weight: bold;">{{ reg.event.event_date|date:"M d, Y H:i" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% elif upcoming_events %}
+                <ul class="list-group">
+                    {% for event in upcoming_events %}
+                    <li class="list-group-item">
+                        <a href="{% url 'events:event_detail' event.id %}">{{ event.title }}</a>
+                        <br><small style="color: #000; font-weight: bold;">{{ event.event_date|date:"M d, Y H:i" }}</small>
+                        <br><small>{{ event.department }} • {{ event.get_category_display }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>No upcoming events</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Events Needing Feedback</div>
+            <div class="card-body">
+                {% if events_needing_feedback %}
+                <ul class="list-group">
+                    {% for event in events_needing_feedback %}
+                    <li class="list-group-item">
+                        <a href="{% url 'feedback:feedback_create' event.id %}">{{ event.title }}</a>
+                        <br><small style="color: #000; font-weight: bold;">Click to submit feedback</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>All caught up! No events need feedback.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

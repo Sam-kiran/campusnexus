@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Feedback - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Submit Feedback for {{ event.title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rating (1-5 stars)</label>
+                        <div class="star-rating">
+                            <input type="radio" name="rating" value="5" id="star5" required><label for="star5">★</label>
+                            <input type="radio" name="rating" value="4" id="star4"><label for="star4">★</label>
+                            <input type="radio" name="rating" value="3" id="star3"><label for="star3">★</label>
+                            <input type="radio" name="rating" value="2" id="star2"><label for="star2">★</label>
+                            <input type="radio" name="rating" value="1" id="star1"><label for="star1">★</label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="emotion" class="form-label">How did you feel? (Emotion)</label>
+                        <select class="form-select" id="emotion" name="emotion" required>
+                            {% for code, name in emotions %}
+                            <option value="{{ code }}">{{ code }} {{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Comments (Max 500 characters, limit 100 words)</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="5" maxlength="500" placeholder="Share your thoughts about the event..."></textarea>
+                        <small class="form-text text-muted"><span id="charCount">0</span>/500 characters</small>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_anonymous" name="is_anonymous" checked>
+                        <label class="form-check-label" for="is_anonymous">Submit anonymously</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Submit Feedback</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('comment').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+</script>
+{% endblock %}
+

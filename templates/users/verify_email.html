@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Verify your email</h2>
+<p>We sent a verification code to <strong>{{ email }}</strong>. Enter it below to verify your account.</p>
+
+<form method="post">
+  {% csrf_token %}
+  <label for="code">Verification Code</label>
+  <input type="text" name="code" id="code" required />
+  <button type="submit">Verify</button>
+</form>
+
+<form method="post" action="{% url 'users:resend_verification' %}" style="margin-top:1rem;">
+  {% csrf_token %}
+  <button type="submit">Resend Code</button>
+</form>
+{% endblock %}

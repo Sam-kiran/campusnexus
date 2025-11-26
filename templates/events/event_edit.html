@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Event - {{ event.title }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Force black text on white background cards */
+    .white-bg-card,
+    .white-bg-card *,
+    .white-bg-card label,
+    .white-bg-card strong,
+    .white-bg-card small,
+    .white-bg-card .form-label,
+    .white-bg-card .form-text,
+    .white-bg-card .form-check-label {
+        color: #212529 !important;
+    }
+    .white-bg-card input::placeholder,
+    .white-bg-card textarea::placeholder {
+        color: #6c757d !important;
+    }
+</style>
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h3>Edit Event: {{ event.title }}</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Event Title *</label>
+                                <input type="text" class="form-control" id="title" name="title" value="{{ event.title }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    {% for code, name in categories %}
+                                    <option value="{{ code }}" {% if event.category == code %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description *</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required>{{ event.description }}</textarea>
+                        <div class="d-flex flex-column flex-md-row align-items-md-center gap-2 mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="sentimentButton">
+                                Run Sentiment Check
+                            </button>
+                            <small id="sentimentStatus" class="text-muted"></small>
+                        </div>
+                        <div id="sentimentResult" class="mt-2 small"></div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="department" class="form-label">Department *</label>
+                                <input type="text" class="form-control" id="department" name="department" value="{{ event.department }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="event_date" class="form-label">Event Date & Time *</label>
+                                <input type="datetime-local" class="form-control" id="event_date" name="event_date" value="{{ event.event_date|date:'Y-m-d\TH:i' }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location *</label>
+                                <input type="text" class="form-control" id="location" name="location" value="{{ event.location }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="capacity" class="form-label">Capacity *</label>
+                                <input type="number" class="form-control" id="capacity" name="capacity" value="{{ event.capacity }}" min="1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="fee" class="form-label">Registration Fee (₹) *</label>
+                                <input type="number" class="form-control" id="fee" name="fee" value="{{ event.fee }}" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Team Event</label>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_team_event" name="is_team_event" {% if event.is_team_event %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_team_event">Is this a team event?</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="team_size_div" style="display: {% if event.is_team_event %}block{% else %}none{% endif %};">
+                        <label for="team_size" class="form-label">Team Size</label>
+                        <input type="number" class="form-control" id="team_size" name="team_size" value="{{ event.team_size }}" min="2">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rules" class="form-label">Rules & Guidelines *</label>
+                        <textarea class="form-control" id="rules" name="rules" rows="5" required>{{ event.rules }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Payment QR Code</strong></label>
+                        {% if event.get_qr_code_image %}
+                        <p class="mb-2" style="color: var(--white);">Current QR Code: <img src="{{ event.get_qr_code_image.url }}" alt="Current QR Code" style="max-width: 150px;" class="mb-2"></p>
+                        {% endif %}
+                        <div class="card p-3 mb-2 white-bg-card" style="background-color: rgba(255, 255, 255, 0.95);">
+                            <div class="mb-3">
+                                <label class="form-label" style="color: #212529 !important;"><strong style="color: #212529 !important;">Option 1: Use Previously Used QR Code</strong></label>
+                                <select class="form-select" id="payment_qr_code_id" name="payment_qr_code_id" onchange="toggleQRCodeOptions()">
+                                    <option value="">-- Select a previously used QR code --</option>
+                                    {% for qr_code in existing_qr_codes %}
+                                    <option value="{{ qr_code.id }}" {% if event.payment_qr_code and event.payment_qr_code.id == qr_code.id %}selected{% endif %}>{{ qr_code.name }} (Created: {{ qr_code.created_at|date:"M d, Y" }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3" id="upload_new_section">
+                                <label class="form-label" style="color: #212529 !important;"><strong style="color: #212529 !important;">Option 2: Upload New QR Code</strong></label>
+                                <div class="mb-2">
+                                    <label for="qr_code_name" class="form-label" style="color: #212529 !important;">QR Code Name (for reuse)</label>
+                                    <input type="text" class="form-control" id="qr_code_name" name="qr_code_name" placeholder="e.g., College Main Payment QR">
+                                    <small class="form-text" style="color: #212529 !important; font-weight: bold;">Give it a name so you can reuse it for other events</small>
+                                </div>
+                                <input type="file" class="form-control" id="qr_code" name="qr_code" accept="image/*">
+                            </div>
+                            
+                            <div class="mb-3" id="generate_section">
+                                <label class="form-label" style="color: #212529 !important;"><strong style="color: #212529 !important;">Option 3: Generate QR Code from Data</strong></label>
+                                <input type="text" class="form-control" id="qr_code_data" name="qr_code_data" value="{{ event.qr_code_data }}" placeholder="UPI ID or payment details (e.g., yourname@paytm)">
+                                <small class="form-text" style="color: #212529 !important; font-weight: bold;">A QR code will be generated from this data</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                    function toggleQRCodeOptions() {
+                        const select = document.getElementById('payment_qr_code_id');
+                        const uploadSection = document.getElementById('upload_new_section');
+                        const generateSection = document.getElementById('generate_section');
+                        
+                        if (select.value) {
+                            // Hide upload and generate sections when using existing QR code
+                            uploadSection.style.display = 'none';
+                            generateSection.style.display = 'none';
+                            document.getElementById('qr_code').required = false;
+                            document.getElementById('qr_code_data').required = false;
+                        } else {
+                            // Show upload and generate sections
+                            uploadSection.style.display = 'block';
+                            generateSection.style.display = 'block';
+                        }
+                    }
+                    // Initialize on page load
+                    document.addEventListener('DOMContentLoaded', toggleQRCodeOptions);
+                    </script>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Event Banner</strong></label>
+                        {% if event.banner %}
+                        <p class="mb-2">Current banner: <img src="{{ event.banner.url }}" alt="Current banner" style="max-width: 200px;" class="mb-2"></p>
+                        {% endif %}
+                        <div class="card p-3 mb-2" style="background-color: var(--medium-blue-grey);">
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Option 1: Upload Your Own Banner</strong></label>
+                                <input type="file" class="form-control" id="banner" name="banner" accept="image/*">
+                                <small class="form-text" style="color: var(--light-blue-grey); font-weight: 400;">Upload a banner image (recommended: 1200x400px)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Option 2: Generate AI Banner & Poster</strong></label>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="generate_ai_banner" name="generate_ai_banner" onchange="toggleBannerOptions()">
+                                    <label class="form-check-label" for="generate_ai_banner" style="color: var(--white);">Generate banner using AI (OpenAI DALL-E)</label>
+                                </div>
+                                <small class="form-text" style="color: var(--light-blue-grey); font-weight: 400;">AI will create a professional banner based on your event details. This may take a few moments.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <script>
+                    function toggleBannerOptions() {
+                        const aiCheckbox = document.getElementById('generate_ai_banner');
+                        const bannerInput = document.getElementById('banner');
+                        
+                        if (aiCheckbox.checked) {
+                            bannerInput.disabled = true;
+                            bannerInput.value = '';
+                        } else {
+                            bannerInput.disabled = false;
+                        }
+                    }
+                    </script>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Update Event</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('is_team_event').addEventListener('change', function() {
+    document.getElementById('team_size_div').style.display = this.checked ? 'block' : 'none';
+});
+
+function getCsrfToken() {
+    const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrfInput) {
+        return csrfInput.value;
+    }
+    const name = 'csrftoken=';
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name)) {
+            return decodeURIComponent(cookie.substring(name.length));
+        }
+    }
+    return '';
+}
+
+const sentimentButton = document.getElementById('sentimentButton');
+const sentimentStatus = document.getElementById('sentimentStatus');
+const sentimentResult = document.getElementById('sentimentResult');
+const descriptionField = document.getElementById('description');
+
+if (sentimentButton && descriptionField) {
+    sentimentButton.addEventListener('click', async () => {
+        const text = descriptionField.value.trim();
+
+        if (!text) {
+            sentimentResult.innerHTML = '<span class="text-warning">Add a description first.</span>';
+            return;
+        }
+
+        sentimentButton.disabled = true;
+        sentimentStatus.textContent = 'Analyzing sentiment...';
+        sentimentResult.textContent = '';
+
+        try {
+            const response = await fetch('{% url "events:sentiment_api" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ text }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Unable to analyze sentiment.');
+            }
+
+            const badgeClass = data.label === 'positive'
+                ? 'bg-success'
+                : data.label === 'negative'
+                    ? 'bg-danger'
+                    : 'bg-secondary';
+
+            sentimentResult.innerHTML = `
+                <span class="badge ${badgeClass} text-uppercase me-2">${data.label}</span>
+                <span>Score: ${data.score} | Confidence: ${(data.confidence * 100).toFixed(0)}%</span><br>
+                <span>Positive hits: ${data.positive_hits}, Negative hits: ${data.negative_hits}</span><br>
+                <em>${data.tip || ''}</em>
+            `;
+            sentimentStatus.textContent = 'Analysis complete.';
+        } catch (error) {
+            sentimentResult.innerHTML = `<span class="text-danger">${error.message}</span>`;
+            sentimentStatus.textContent = '';
+        } finally {
+            sentimentButton.disabled = false;
+        }
+    });
+}
+</script>
+{% endblock %}
+

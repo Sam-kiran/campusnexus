@@ -1,0 +1,11 @@
+Hello,
+
+A new registration has been submitted for your event "{{ event.title }}".
+
+Registrant: {{ registration.user.username }} ({{ registration.user.email }})
+Registered at: {{ registration.registered_at }}
+
+Please verify payment if required.
+
+Thanks,
+CampusNexus Team

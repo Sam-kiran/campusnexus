@@ -1,0 +1,13 @@
+Hi {{ user.username }},
+
+Your registration for the event "{{ event.title }}" has been received.
+
+Details:
+Event: {{ event.title }}
+Date: {{ event.event_date }}
+Location: {{ event.location }}
+
+Payment verification is pending. You will receive a confirmation after payment is verified.
+
+Thank you,
+CampusNexus Team

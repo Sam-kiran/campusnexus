@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Events - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Upcoming Events</h1>
+    </div>
+    <div class="col-md-4">
+        <form method="get" class="d-flex">
+            <input type="text" class="form-control me-2" name="search" placeholder="Search events..." value="{{ request.GET.search }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </form>
+    </div>
+</div>
+
+{% if hot_events %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>🔥 Hot Events</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for event in hot_events %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card event-card" onclick="window.location='{% url 'events:event_detail' event.id %}'">
+                            {% if event.banner %}
+                            <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}" style="height: 150px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ event.title }}</h5>
+                                <p class="card-text">
+                                    <small style="color: #000; font-weight: bold;">{{ event.event_date|date:"M d, Y H:i" }}</small><br>
+                                    <span class="hot-badge">🔥 Hot</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">Filters</div>
+            <div class="card-body">
+                <form method="get">
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            {% for code, name in categories %}
+                            <option value="{{ code }}" {% if request.GET.category == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">Department</label>
+                        <input type="text" class="form-control" id="department" name="department" value="{{ request.GET.department }}" onchange="this.form.submit()">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    <a href="{% url 'events:event_list' %}" class="btn btn-secondary w-100 mt-2">Clear</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="row">
+            {% for event in events %}
+            <div class="col-md-6 mb-3">
+                <div class="card event-card" onclick="window.location='{% url 'events:event_detail' event.id %}'">
+                    {% if event.banner %}
+                    <img src="{{ event.banner.url }}" class="card-img-top" alt="{{ event.title }}" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ event.title }}</h5>
+                        <p class="card-text">
+                            <strong>Category:</strong> {{ event.get_category_display }}<br>
+                            <strong>Department:</strong> {{ event.department }}<br>
+                            <strong>Date:</strong> {{ event.event_date|date:"M d, Y H:i" }}<br>
+                            <strong>Location:</strong> {{ event.location }}<br>
+                            <strong>Fee:</strong> ₹{{ event.fee }}<br>
+                            <strong>Registrations:</strong> {{ event.total_registrations }}/{{ event.capacity }}
+                        </p>
+                        {% if event.hotness_score >= 50 %}
+                        <span class="hot-badge">🔥 Hot Event</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p>No events found.</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
