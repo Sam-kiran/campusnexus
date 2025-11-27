@@ -115,8 +115,9 @@ WSGI_APPLICATION = 'campusnexus.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use PostgreSQL if configured, otherwise use dummy database for Vercel build
+# Use PostgreSQL if configured, SQLite for local dev, or dummy database for Vercel build
 if os.getenv('DB_NAME') and os.getenv('DB_USER'):
+    # PostgreSQL configuration
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -127,11 +128,19 @@ if os.getenv('DB_NAME') and os.getenv('DB_USER'):
             'PORT': os.getenv('DB_PORT', '5432'),
         }
     }
-else:
+elif os.getenv('VERCEL'):
     # Use dummy database for Vercel build (doesn't require actual DB for collectstatic)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.dummy',
+        }
+    }
+else:
+    # SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
