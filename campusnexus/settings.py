@@ -278,3 +278,14 @@ CORS_ALLOW_CREDENTIALS = True
 # College Email Domain (for validation)
 COLLEGE_EMAIL_DOMAIN = os.getenv('COLLEGE_EMAIL_DOMAIN', '@saividya.ac.in')
 
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
