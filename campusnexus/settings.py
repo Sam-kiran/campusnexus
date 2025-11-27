@@ -78,13 +78,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3',  # Vercel uses /tmp for temporary storage
-    }
-}
-
 # Optional middleware
 try:
     import whitenoise
@@ -122,34 +115,23 @@ WSGI_APPLICATION = 'campusnexus.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use SQLite for development if PostgreSQL is not configured
+# Use PostgreSQL if configured, otherwise use dummy database for Vercel build
 if os.getenv('DB_NAME') and os.getenv('DB_USER'):
-    try:
-        import psycopg2
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'campusnexus'),
-                'USER': os.getenv('DB_USER', 'postgres'),
-                'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-                'HOST': os.getenv('DB_HOST', 'localhost'),
-                'PORT': os.getenv('DB_PORT', '5432'),
-            }
-        }
-    except ImportError:
-        # Fallback to SQLite if psycopg2 not installed
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
-else:
-    # Fallback to SQLite for development
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'campusnexus'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
+else:
+    # Use dummy database for Vercel build (doesn't require actual DB for collectstatic)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.dummy',
         }
     }
 
