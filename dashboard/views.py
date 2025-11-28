@@ -175,6 +175,109 @@ def admin_dashboard(request):
 
 
 @login_required
+def management_dashboard(request):
+    """Management dashboard with all admin features plus payment tracking."""
+    if not request.user.is_management():
+        messages.error(request, 'Access denied. Management role required.')
+        return redirect('users:home')
+    
+    # Get all events (management has access to everything)
+    events = Event.objects.all()
+    
+    # Statistics (same as admin)
+    total_events = events.count()
+    approved_events = events.filter(status='approved').count()
+    pending_events = events.filter(status='pending').count()
+    total_registrations = Registration.objects.filter(is_verified=True).count()
+    total_feedbacks = Feedback.objects.count()
+    
+    # Recent events
+    recent_events = events.order_by('-created_at')[:10]
+    
+    # Department-wise stats
+    dept_stats = events.values('department').annotate(
+        count=Count('id'),
+        registrations=Sum('total_registrations')
+    ).order_by('-count')
+    
+    # Category-wise stats
+    category_stats = events.values('category').annotate(
+        count=Count('id'),
+        avg_rating=Avg('average_rating')
+    ).order_by('-count')
+    
+    # Time-based trends (last 30 days)
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    events_trend = events.filter(created_at__gte=thirty_days_ago).extra(
+        select={'day': 'date(created_at)'}
+    ).values('day').annotate(count=Count('id')).order_by('day')
+    
+    # Sentiment analysis summary
+    sentiment_stats = {
+        'positive': Feedback.objects.filter(sentiment_label='positive').count(),
+        'neutral': Feedback.objects.filter(sentiment_label='neutral').count(),
+        'negative': Feedback.objects.filter(sentiment_label='negative').count(),
+    }
+    
+    # Top events by registration
+    top_events = events.order_by('-total_registrations')[:5]
+    
+    # PAYMENT TRACKING - Event-wise payment statistics
+    payment_stats = []
+    for event in events.order_by('-created_at'):
+        registrations = Registration.objects.filter(event=event)
+        verified_payments = registrations.filter(is_verified=True)
+        pending_payments = registrations.filter(is_verified=False)
+        
+        total_revenue = verified_payments.count() * float(event.fee)
+        pending_revenue = pending_payments.count() * float(event.fee)
+        
+        payment_stats.append({
+            'event': event,
+            'total_registrations': registrations.count(),
+            'verified_payments': verified_payments.count(),
+            'pending_payments': pending_payments.count(),
+            'total_revenue': total_revenue,
+            'pending_revenue': pending_revenue,
+            'fee': event.fee,
+        })
+    
+    # Overall payment summary
+    all_registrations = Registration.objects.all()
+    total_verified_payments = all_registrations.filter(is_verified=True).count()
+    total_pending_payments = all_registrations.filter(is_verified=False).count()
+    
+    # Calculate total revenue
+    total_revenue = sum(
+        float(reg.event.fee) for reg in all_registrations.filter(is_verified=True)
+    )
+    pending_revenue = sum(
+        float(reg.event.fee) for reg in all_registrations.filter(is_verified=False)
+    )
+    
+    context = {
+        'total_events': total_events,
+        'approved_events': approved_events,
+        'pending_events': pending_events,
+        'total_registrations': total_registrations,
+        'total_feedbacks': total_feedbacks,
+        'recent_events': recent_events,
+        'dept_stats': list(dept_stats),
+        'category_stats': list(category_stats),
+        'events_trend': list(events_trend),
+        'sentiment_stats': sentiment_stats,
+        'top_events': top_events,
+        # Payment-specific data
+        'payment_stats': payment_stats,
+        'total_verified_payments': total_verified_payments,
+        'total_pending_payments': total_pending_payments,
+        'total_revenue': total_revenue,
+        'pending_revenue': pending_revenue,
+    }
+    return render(request, 'dashboard/management_dashboard.html', context)
+
+
+@login_required
 def leaderboard_view(request):
     """Leaderboard view for students."""
     leaderboard = Leaderboard.objects.select_related('user').order_by('-total_points', '-total_events_attended')[:100]

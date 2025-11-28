@@ -20,6 +20,7 @@ class User(AbstractUser):
         ('student', 'Student'),
         ('admin', 'Admin'),
         ('organizer', 'Organizer'),
+        ('management', 'Management'),
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
@@ -49,8 +50,14 @@ class User(AbstractUser):
     def is_organizer(self):
         return self.role == 'organizer'
     
+    def is_management(self):
+        return self.role == 'management'
+    
     def is_admin_or_organizer(self):
         return self.role in ['admin', 'organizer']
+    
+    def is_admin_or_management(self):
+        return self.role in ['admin', 'management']
 
 
 class EmailVerification(models.Model):

@@ -378,6 +378,13 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'dashboard:leaderboard' %}">Leaderboard</a>
                             </li>
+                        {% elif user.is_management %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'dashboard:management_dashboard' %}">Management Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'events:event_create' %}">Create Event</a>
+                            </li>
                         {% else %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'dashboard:admin_dashboard' %}">Dashboard</a>

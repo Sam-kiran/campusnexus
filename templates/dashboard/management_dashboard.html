@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Management Dashboard - CampusNexus{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>Management Dashboard</h1>
+        <p class="text-muted">Welcome, {{ user.username }}! You have full access to all system features and payment tracking.</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ total_events }}</h3>
+                <p>Total Events</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ approved_events }}</h3>
+                <p>Approved</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ pending_events }}</h3>
+                <p>Pending</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ total_registrations }}</h3>
+                <p>Registrations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ total_feedbacks }}</h3>
+                <p>Feedbacks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h3>₹{{ total_revenue|floatformat:2 }}</h3>
+                <p>Total Revenue</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Summary Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>💰 PAYMENTS OVERVIEW</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ total_verified_payments }}</h4>
+                                <p>Verified Payments</p>
+                                <h5>₹{{ total_revenue|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h4>{{ total_pending_payments }}</h4>
+                                <p>Pending Payments</p>
+                                <h5>₹{{ pending_revenue|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ total_verified_payments|add:total_pending_payments }}</h4>
+                                <p>Total Transactions</p>
+                                <h5>₹{{ total_revenue|add:pending_revenue|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event-wise Payment Details -->
+                <h5 class="mt-4 mb-3">Event-wise Payment Breakdown</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Event Title</th>
+                                <th>Department</th>
+                                <th>Event Date</th>
+                                <th>Fee</th>
+                                <th>Total Registrations</th>
+                                <th>Verified Payments</th>
+                                <th>Pending Payments</th>
+                                <th>Revenue (Verified)</th>
+                                <th>Pending Revenue</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in payment_stats %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'events:event_detail' stat.event.id %}" class="text-decoration-none">
+                                        {{ stat.event.title }}
+                                    </a>
+                                </td>
+                                <td>{{ stat.event.department }}</td>
+                                <td>{{ stat.event.event_date|date:"M d, Y H:i" }}</td>
+                                <td>₹{{ stat.fee|floatformat:2 }}</td>
+                                <td>{{ stat.total_registrations }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ stat.verified_payments }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">{{ stat.pending_payments }}</span>
+                                </td>
+                                <td class="text-success fw-bold">₹{{ stat.total_revenue|floatformat:2 }}</td>
+                                <td class="text-warning fw-bold">₹{{ stat.pending_revenue|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge bg-{% if stat.event.status == 'approved' %}success{% elif stat.event.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                        {{ stat.event.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center">No payment data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Charts -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Department-wise Events</div>
+            <div class="card-body">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Sentiment Analysis</div>
+            <div class="card-body">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Events -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Recent Events</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Registrations</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in recent_events %}
+                            <tr>
+                                <td>{{ event.title }}</td>
+                                <td>{{ event.department }}</td>
+                                <td>{{ event.event_date|date:"M d, Y" }}</td>
+                                <td>{{ event.total_registrations }}/{{ event.capacity }}</td>
+                                <td><span class="badge bg-{% if event.status == 'approved' %}success{% elif event.status == 'pending' %}warning{% else %}secondary{% endif %}">{{ event.get_status_display }}</span></td>
+                                <td>
+                                    <a href="{% url 'events:event_detail' event.id %}" class="btn btn-sm btn-info">View</a>
+                                    <a href="{% url 'events:event_edit' event.id %}" class="btn btn-sm btn-primary">Edit</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Export Reports</div>
+            <div class="card-body">
+                <a href="{% url 'dashboard:export_report' 'csv' %}" class="btn btn-success">
+                    <i class="fas fa-file-csv"></i> Export as CSV
+                </a>
+                <a href="{% url 'dashboard:export_report' 'pdf' %}" class="btn btn-danger">
+                    <i class="fas fa-file-pdf"></i> Export as PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Department Chart
+const deptCtx = document.getElementById('deptChart').getContext('2d');
+new Chart(deptCtx, {
+    type: 'bar',
+    data: {
+        labels: [{% for stat in dept_stats %}'{{ stat.department }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Events',
+            data: [{% for stat in dept_stats %}{{ stat.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+
+// Sentiment Chart
+const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+new Chart(sentimentCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Positive', 'Neutral', 'Negative'],
+        datasets: [{
+            data: [{{ sentiment_stats.positive }}, {{ sentiment_stats.neutral }}, {{ sentiment_stats.negative }}],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(255, 99, 132, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+    }
+});
+</script>
+
+{% endblock %}

@@ -34,6 +34,8 @@ def home(request):
     if request.user.is_authenticated:
         if request.user.is_student():
             return redirect('dashboard:student_dashboard')
+        elif request.user.is_management():
+            return redirect('dashboard:management_dashboard')
         elif request.user.is_admin_or_organizer():
             return redirect('dashboard:admin_dashboard')
     return redirect('users:login')
@@ -70,6 +72,8 @@ def login_view(request):
                     
                     if user.is_student():
                         return redirect('dashboard:student_dashboard')
+                    elif user.is_management():
+                        return redirect('dashboard:management_dashboard')
                     else:
                         return redirect('dashboard:admin_dashboard')
                 except User.DoesNotExist:
@@ -91,6 +95,8 @@ def login_view(request):
                     
                     if user.is_student():
                         return redirect('dashboard:student_dashboard')
+                    elif user.is_management():
+                        return redirect('dashboard:management_dashboard')
                     else:
                         return redirect('dashboard:admin_dashboard')
                 else:
@@ -309,6 +315,8 @@ def verify_email(request):
                 request.session.pop('verification_user_id', None)
                 if user.is_student():
                     return redirect('dashboard:student_dashboard')
+                elif user.is_management():
+                    return redirect('dashboard:management_dashboard')
                 else:
                     return redirect('dashboard:admin_dashboard')
             else:
