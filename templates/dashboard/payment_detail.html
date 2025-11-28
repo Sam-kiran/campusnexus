@@ -68,31 +68,6 @@
     </div>
 </div>
 
-<!-- Approve Modal -->
-<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content text-dark">
-            <div class="modal-header">
-                <h5 class="modal-title">Approve Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="approveForm">
-                    <div class="mb-3">
-                        <label for="approvalReason" class="form-label">Reason or note (optional)</label>
-                        <textarea class="form-control" id="approvalReason" name="reason" rows="3"></textarea>
-                    </div>
-                    <input type="hidden" id="approveRegId" name="reg_id" value="">
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="confirmApprove">Approve</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.querySelectorAll('.toggle-verify').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -144,51 +119,7 @@ if (approveModalEl) {
     approveModal = new bootstrap.Modal(approveModalEl);
 }
 
-document.querySelectorAll('.open-approve-modal').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const regId = btn.getAttribute('data-id');
-        document.getElementById('approveRegId').value = regId;
-        document.getElementById('approvalReason').value = '';
-        if (approveModal) approveModal.show();
-    });
-});
-
-document.getElementById('confirmApprove')?.addEventListener('click', async (e) => {
-    const regId = document.getElementById('approveRegId').value;
-    const reason = document.getElementById('approvalReason').value || '';
-    const url = `{% url 'dashboard:management_approve_payment' 0 %}`.replace('/0/', `/${regId}/`);
-    try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({ reason })
-        });
-        const data = await res.json();
-        if (data.success) {
-            // update the row
-            const row = document.getElementById(`reg-${regId}`);
-            row.querySelector('.is-verified').innerHTML = '<span class="badge bg-success">Yes</span>';
-            row.querySelector('.approved-by').innerText = data.verified_by || '';
-            row.querySelector('.approval-reason').innerText = (data.reason || '').slice(0,80);
-            // change action button to Un-verify
-            const actionBtn = row.querySelector('.open-approve-modal') || row.querySelector('.toggle-verify');
-            if (actionBtn) {
-                actionBtn.classList.remove('open-approve-modal', 'btn-success');
-                actionBtn.classList.add('toggle-verify', 'btn-danger');
-                actionBtn.innerText = 'Un-verify';
-                actionBtn.setAttribute('data-id', regId);
-            }
-            if (approveModal) approveModal.hide();
-        } else {
-            alert(data.error || 'Error approving payment');
-        }
-    } catch (err) {
-        alert('Network error');
-    }
-});
+{% include 'dashboard/_approve_modal.html' %}
 </script>
 
 {% endblock %}

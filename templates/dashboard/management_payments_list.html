@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments - Management{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h2>All Payments</h2>
+        <p class="text-muted">Filter: {{ status|default:'all'|title }}</p>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>User</th>
+                        <th>Registered At</th>
+                        <th>Payment Status</th>
+                        <th>UPI ID</th>
+                        <th>Transaction ID</th>
+                        <th>Verified</th>
+                        <th>Approved By</th>
+                        <th>Approval Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registrations %}
+                    <tr id="reg-{{ reg.id }}">
+                        <td><a href="{% url 'events:event_detail' reg.event.id %}">{{ reg.event.title }}</a></td>
+                        <td>{{ reg.user.username }}<br><small>{{ reg.user.email }}</small></td>
+                        <td>{{ reg.registered_at|date:'Y-m-d H:i' }}</td>
+                        <td>{{ reg.get_payment_status_display }}</td>
+                        <td>{{ reg.upi_id|default:'-' }}</td>
+                        <td>{{ reg.payment_verification_code|default:'-' }}</td>
+                        <td class="is-verified">{% if reg.is_verified %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-warning text-dark">No</span>{% endif %}</td>
+                        <td class="approved-by">{% if reg.verified_by %}{{ reg.verified_by.username }}{% else %}-{% endif %}</td>
+                        <td class="approval-reason">{% if reg.verification_reason %}{{ reg.verification_reason|truncatechars:80 }}{% else %}-{% endif %}</td>
+                        <td>
+                            {% if not reg.is_verified %}
+                                <button class="btn btn-sm btn-success open-approve-modal" data-id="{{ reg.id }}">Approve</button>
+                            {% else %}
+                                <button class="btn btn-sm btn-danger toggle-verify" data-id="{{ reg.id }}">Un-verify</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="10" class="text-center">No payments found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Include shared approve modal and JS -->
+{% include 'dashboard/_approve_modal.html' %}
+
+{% endblock %}

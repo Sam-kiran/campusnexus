@@ -61,14 +61,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Sentiment Analysis</div>
-            <div class="card-body">
-                <canvas id="sentimentChart"></canvas>
-            </div>
-        </div>
-    </div>
+    <!-- Sentiment analysis removed -->
 </div>
 
 <div class="row">
@@ -136,22 +129,7 @@ new Chart(deptCtx, {
     }
 });
 
-// Sentiment Chart
-const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
-new Chart(sentimentCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Positive', 'Neutral', 'Negative'],
-        datasets: [{
-            data: [{{ sentiment_stats.positive }}, {{ sentiment_stats.neutral }}, {{ sentiment_stats.negative }}],
-            backgroundColor: [
-                'rgba(115, 37, 83, 0.8)',
-                'rgba(133, 163, 178, 0.8)',
-                'rgba(255, 92, 141, 0.8)'
-            ]
-        }]
-    }
-});
+// Sentiment analysis removed from admin dashboard
 
 // Hotness chart: fetch aggregated hotness per department
 fetch('{% url "dashboard:hotness_api" %}').then(r => r.json()).then(data => {

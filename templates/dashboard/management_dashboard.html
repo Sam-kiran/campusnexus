@@ -85,6 +85,7 @@
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-4">
+                        <a href="{% url 'dashboard:management_payments_list' %}?status=verified" class="text-decoration-none">
                         <div class="card bg-success text-white">
                             <div class="card-body text-center">
                                 <h4>{{ total_verified_payments }}</h4>
@@ -92,8 +93,10 @@
                                 <h5>₹{{ total_revenue|floatformat:2 }}</h5>
                             </div>
                         </div>
+                        </a>
                     </div>
                     <div class="col-md-4">
+                        <a href="{% url 'dashboard:management_payments_list' %}?status=pending" class="text-decoration-none">
                         <div class="card bg-warning text-dark">
                             <div class="card-body text-center">
                                 <h4>{{ total_pending_payments }}</h4>
@@ -101,8 +104,10 @@
                                 <h5>₹{{ pending_revenue|floatformat:2 }}</h5>
                             </div>
                         </div>
+                        </a>
                     </div>
                     <div class="col-md-4">
+                        <a href="{% url 'dashboard:management_payments_list' %}?status=all" class="text-decoration-none">
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
                                 <h4>{{ total_verified_payments|add:total_pending_payments }}</h4>
@@ -110,6 +115,7 @@
                                 <h5>₹{{ total_revenue|add:pending_revenue|floatformat:2 }}</h5>
                             </div>
                         </div>
+                        </a>
                     </div>
                 </div>
 
@@ -180,14 +186,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Sentiment Analysis</div>
-            <div class="card-body">
-                <canvas id="sentimentChart"></canvas>
-            </div>
-        </div>
-    </div>
+    <!-- Sentiment analysis removed as requested -->
 </div>
 
 <!-- Recent Events -->
@@ -274,25 +273,7 @@ new Chart(deptCtx, {
     }
 });
 
-// Sentiment Chart
-const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
-new Chart(sentimentCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Positive', 'Neutral', 'Negative'],
-        datasets: [{
-            data: [{{ sentiment_stats.positive }}, {{ sentiment_stats.neutral }}, {{ sentiment_stats.negative }}],
-            backgroundColor: [
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(255, 206, 86, 0.8)',
-                'rgba(255, 99, 132, 0.8)'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-    }
-});
+// Sentiment analysis removed from dashboard
 
 // Hotness Chart - fetch data from API and render a doughnut
 fetch('{% url "dashboard:hotness_api" %}')

@@ -302,6 +302,27 @@ def payment_detail(request, event_id):
 
 
 @login_required
+def management_payments_list(request):
+    """List all payments with optional filtering by status: verified/pending/all"""
+    if not request.user.is_management():
+        messages.error(request, 'Access denied. Management role required.')
+        return redirect('users:home')
+
+    status = request.GET.get('status', 'all')
+    qs = Registration.objects.select_related('event', 'user').order_by('-registered_at')
+    if status == 'verified':
+        qs = qs.filter(is_verified=True)
+    elif status == 'pending':
+        qs = qs.filter(is_verified=False)
+
+    context = {
+        'registrations': qs,
+        'status': status,
+    }
+    return render(request, 'dashboard/management_payments_list.html', context)
+
+
+@login_required
 def payment_export(request):
     """Export payments CSV (and PDF placeholder) with optional filters: start_date, end_date, event_id."""
     if not request.user.is_management():
