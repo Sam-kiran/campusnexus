@@ -11,6 +11,18 @@
     </div>
 </div>
 
+<!-- Hotness pie chart at top -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Event Hotness by Department</div>
+            <div class="card-body">
+                <canvas id="hotnessChart" style="max-height:250px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-2">
@@ -281,6 +293,30 @@ new Chart(sentimentCtx, {
         responsive: true,
     }
 });
+
+// Hotness Chart - fetch data from API and render a doughnut
+fetch('{% url "dashboard:hotness_api" %}')
+    .then(r => r.json())
+    .then(data => {
+        const ctx = document.getElementById('hotnessChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    data: data.values,
+                    backgroundColor: data.labels.map((_, i) => {
+                        const colors = [
+                            'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'
+                        ];
+                        return colors[i % colors.length];
+                    })
+                }]
+            },
+            options: { responsive: true }
+        });
+    }).catch(err => console.error('Hotness API error', err));
 </script>
 
 {% endblock %}

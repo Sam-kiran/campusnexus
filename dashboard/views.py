@@ -14,6 +14,9 @@ from events.models import Event, Registration
 from feedback.models import Feedback, FeedbackAnalytics
 from users.models import User, Leaderboard
 from .utils import generate_analytics_report, export_to_csv, export_to_pdf
+from django.http import HttpResponse, Http404, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import csv
 
 
 @login_required
@@ -278,6 +281,111 @@ def management_dashboard(request):
 
 
 @login_required
+def payment_detail(request, event_id):
+    """Per-event payment details for management: list registrations with payment info."""
+    if not request.user.is_management():
+        messages.error(request, 'Access denied. Management role required.')
+        return redirect('users:home')
+
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        raise Http404('Event not found')
+
+    registrations = Registration.objects.filter(event=event).select_related('user').order_by('-registered_at')
+
+    context = {
+        'event': event,
+        'registrations': registrations,
+    }
+    return render(request, 'dashboard/payment_detail.html', context)
+
+
+@login_required
+def payment_export(request):
+    """Export payments CSV (and PDF placeholder) with optional filters: start_date, end_date, event_id."""
+    if not request.user.is_management():
+        messages.error(request, 'Access denied. Management role required.')
+        return redirect('users:home')
+
+    fmt = request.GET.get('format', 'csv')
+    event_id = request.GET.get('event_id')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    qs = Registration.objects.select_related('event', 'user').order_by('-registered_at')
+    if event_id:
+        qs = qs.filter(event__id=event_id)
+    if start_date:
+        qs = qs.filter(registered_at__date__gte=start_date)
+    if end_date:
+        qs = qs.filter(registered_at__date__lte=end_date)
+
+    if fmt == 'csv':
+        # Build CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="payments_export.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Event', 'Event ID', 'User', 'User Email', 'Registered At', 'Verified', 'Payment Status', 'UPI ID', 'Transaction ID', 'Fee'])
+        for reg in qs:
+            writer.writerow([
+                reg.event.title,
+                reg.event.id,
+                reg.user.username,
+                reg.user.email,
+                reg.registered_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Yes' if reg.is_verified else 'No',
+                reg.get_payment_status_display(),
+                reg.upi_id or '',
+                reg.payment_verification_code or '',
+                float(reg.event.fee),
+            ])
+        return response
+    else:
+        # PDF/export using existing utilities could be added; for now redirect back with message
+        messages.error(request, 'Only CSV export currently supported.')
+        return redirect('dashboard:management_dashboard')
+
+
+@login_required
+@csrf_exempt
+def toggle_payment_verification(request, reg_id):
+    """Toggle verification status for a registration (management action)."""
+    if not request.user.is_management():
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        reg = Registration.objects.get(id=reg_id)
+    except Registration.DoesNotExist:
+        return JsonResponse({'error': 'Registration not found'}, status=404)
+    # Approve (verify) using model helper to ensure event counters and hotness update
+    if not reg.is_verified:
+        try:
+            reg.verify_payment(request.user)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'success': True, 'is_verified': True, 'verified_by': reg.verified_by.username if reg.verified_by else None})
+    else:
+        # Un-verify: revert verification and adjust event counters
+        try:
+            reg.is_verified = False
+            reg.payment_status = 'pending'
+            reg.verified_by = None
+            reg.verified_at = None
+            reg.save()
+
+            # Decrement event registration count safely
+            if reg.event.total_registrations and reg.event.total_registrations > 0:
+                reg.event.total_registrations = max(0, reg.event.total_registrations - 1)
+                reg.event.save(update_fields=['total_registrations'])
+                reg.event.update_hotness_score()
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        return JsonResponse({'success': True, 'is_verified': False})
+
+
+@login_required
 def leaderboard_view(request):
     """Leaderboard view for students."""
     leaderboard = Leaderboard.objects.select_related('user').order_by('-total_points', '-total_events_attended')[:100]
@@ -302,9 +410,10 @@ def leaderboard_view(request):
 @login_required
 def export_report(request, format_type='csv'):
     """Export analytics report."""
-    if not request.user.is_admin_or_organizer():
+    # Allow admins, organizers and management users to export reports
+    if not (request.user.is_admin_or_organizer() or request.user.is_management()):
         messages.error(request, 'Access denied.')
-        return redirect('dashboard:admin_dashboard')
+        return redirect('users:home')
     
     # Get events based on role
     if request.user.is_admin():
@@ -368,4 +477,18 @@ def analytics_api(request):
         'events_trend': events_trend,
         'sentiment_trends': sentiment_trends,
     })
+
+
+@login_required
+def hotness_api(request):
+    """Return hotness per department for charts (accessible to authenticated users)."""
+    # Aggregate hotness per department
+    qs = Event.objects.all()
+    dept_hotness = list(qs.values('department').annotate(total_hotness=Sum('hotness_score')).order_by('-total_hotness'))
+
+    data = {
+        'labels': [d['department'] or 'Unknown' for d in dept_hotness],
+        'values': [float(d['total_hotness'] or 0) for d in dept_hotness]
+    }
+    return JsonResponse(data)
 

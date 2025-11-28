@@ -13,6 +13,14 @@
     <div class="col-md-3">
         <div class="card text-center">
             <div class="card-body">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Event Hotness by Department</div>
+                <div class="card-body">
+                    <canvas id="hotnessChart" style="max-height:250px;"></canvas>
+                </div>
+            </div>
+        </div>
                 <h3>{{ total_events }}</h3>
                 <p>Total Events</p>
             </div>
@@ -144,6 +152,21 @@ new Chart(sentimentCtx, {
         }]
     }
 });
+
+// Hotness chart: fetch aggregated hotness per department
+fetch('{% url "dashboard:hotness_api" %}').then(r => r.json()).then(data => {
+    const ctx = document.getElementById('hotnessChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: data.labels,
+            datasets: [{ data: data.values, backgroundColor: [
+                'rgba(255,99,132,0.8)','rgba(54,162,235,0.8)','rgba(255,206,86,0.8)','rgba(75,192,192,0.8)','rgba(153,102,255,0.8)'
+            ] }]
+        },
+        options: { responsive: true }
+    });
+}).catch(e => console.error('hotness api', e));
 </script>
 {% endblock %}
 
