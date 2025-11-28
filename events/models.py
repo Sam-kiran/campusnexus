@@ -160,6 +160,7 @@ class Registration(models.Model):
     payment_screenshot = models.ImageField(upload_to='payment_screenshots/', null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_registrations')
+    verification_reason = models.TextField(null=True, blank=True, help_text='Optional reason or note provided when approving the payment')
     verified_at = models.DateTimeField(null=True, blank=True)
     registered_at = models.DateTimeField(auto_now_add=True)
     
@@ -171,19 +172,27 @@ class Registration(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.event.title}"
     
-    def verify_payment(self, verifier):
-        """Verify payment and update registration."""
+    def verify_payment(self, verifier, reason=None):
+        """Verify payment and update registration.
+
+        verifier: User instance who approved the payment
+        reason: optional text describing approval notes/reason
+        """
         self.is_verified = True
         self.payment_status = 'verified'
         self.verified_by = verifier
+        self.verification_reason = reason or ''
         self.verified_at = timezone.now()
         self.save()
-        
-        # Update event registration count
-        if self.is_verified:
-            self.event.total_registrations += 1
+
+        # Update event registration count and hotness
+        try:
+            self.event.total_registrations = (self.event.total_registrations or 0) + 1
             self.event.save(update_fields=['total_registrations'])
             self.event.update_hotness_score()
+        except Exception:
+            # fail silently; caller can handle errors
+            pass
 
 
 class EventRecommendation(models.Model):

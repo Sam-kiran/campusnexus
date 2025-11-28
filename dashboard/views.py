@@ -326,7 +326,7 @@ def payment_export(request):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="payments_export.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Event', 'Event ID', 'User', 'User Email', 'Registered At', 'Verified', 'Payment Status', 'UPI ID', 'Transaction ID', 'Fee'])
+        writer.writerow(['Event', 'Event ID', 'User', 'User Email', 'Registered At', 'Verified', 'Verified By', 'Approval Reason', 'Payment Status', 'UPI ID', 'Transaction ID', 'Fee'])
         for reg in qs:
             writer.writerow([
                 reg.event.title,
@@ -335,6 +335,8 @@ def payment_export(request):
                 reg.user.email,
                 reg.registered_at.strftime('%Y-%m-%d %H:%M:%S'),
                 'Yes' if reg.is_verified else 'No',
+                (reg.verified_by.username if reg.verified_by else ''),
+                (reg.verification_reason or ''),
                 reg.get_payment_status_display(),
                 reg.upi_id or '',
                 reg.payment_verification_code or '',
@@ -371,6 +373,7 @@ def toggle_payment_verification(request, reg_id):
             reg.is_verified = False
             reg.payment_status = 'pending'
             reg.verified_by = None
+            reg.verification_reason = ''
             reg.verified_at = None
             reg.save()
 
@@ -383,6 +386,33 @@ def toggle_payment_verification(request, reg_id):
             return JsonResponse({'error': str(e)}, status=500)
 
         return JsonResponse({'success': True, 'is_verified': False})
+
+
+@login_required
+def approve_payment(request, reg_id):
+    """Approve a payment with an optional reason (management action)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if not request.user.is_management():
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        reg = Registration.objects.get(id=reg_id)
+    except Registration.DoesNotExist:
+        return JsonResponse({'error': 'Registration not found'}, status=404)
+
+    reason = request.POST.get('reason') or request.POST.get('approval_reason') or ''
+
+    if reg.is_verified:
+        return JsonResponse({'error': 'Already verified'}, status=400)
+
+    try:
+        reg.verify_payment(request.user, reason=reason)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'success': True, 'is_verified': True, 'verified_by': reg.verified_by.username if reg.verified_by else None, 'reason': reg.verification_reason})
 
 
 @login_required
