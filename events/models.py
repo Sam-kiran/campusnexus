@@ -96,9 +96,8 @@ class Event(models.Model):
         """Generate QR code on save if not exists and no image uploaded."""
         # If payment_qr_code is set, use it instead of generating
         if self.payment_qr_code and self.payment_qr_code.qr_code_image:
-            # Copy the QR code from PaymentQRCode if not already set
-            if not self.qr_code:
-                self.qr_code = self.payment_qr_code.qr_code_image
+            # Always copy the QR code from PaymentQRCode to ensure it's updated
+            self.qr_code = self.payment_qr_code.qr_code_image
         # Only generate QR code if no QR code image exists, no payment_qr_code set, and QR code data is provided
         elif not self.qr_code and self.qr_code_data and QRCODE_AVAILABLE:
             try:
